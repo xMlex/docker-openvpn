@@ -52,7 +52,11 @@ function setupIptablesAndRouting {
 
 addArg "--config" "$OPENVPN/server.conf"
 addArg "--cd" "$OPENVPN"
-source "$OPENVPN/ovpn_env.sh"
+
+if [ -f "$OPENVPN/ovpn_env.sh" ]; then
+    echo "ENV file found!"
+    source "$OPENVPN/ovpn_env.sh"
+fi
 
 mkdir -p /dev/net
 if [ ! -c /dev/net/tun ]; then
