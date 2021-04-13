@@ -1,16 +1,68 @@
 #!/bin/bash
-
 #
 # Run the OpenVPN server normally
 #
+if [ "$DEBUG" == "1" ]; then set -x; fi;
+set -e
+cd $OPENVPN
 
-if [ "$DEBUG" == "1" ]; then
-  set -x
+if ! [ -f "$EASYRSA_VARS_FILE" ]; then
+    echo "$EASYRSA_VARS_FILE not exists."
+    cp $EASYRSA/vars.example $EASYRSA_VARS_FILE
+fi
+if ! [ -d "$EASYRSA_PKI" ]; then
+    echo "$EASYRSA_PKI not exists, generate"
+    easyrsa init-pki
 fi
 
-set -e
+if ! [ -f "$EASYRSA_PKI/ca.crt" ]; then
+    echo "$EASYRSA_PKI/ca.crt not exists, generate"
+    easyrsa --batch build-ca nopass
+    if [ -f "$EASYRSA_PKI/ca.crt" ]; then
+      cp $EASYRSA_PKI/ca.crt $OPENVPN/ca.crt;
+    else
+      echo "Generate ca.crt FAIL";
+      exit 1;
+    fi;
+fi
 
-cd $OPENVPN
+if ! [ -f "$OPENVPN/server.key" ]; then
+    echo "$OPENVPN/server.key not exists, generate"
+    easyrsa --batch gen-req server nopass
+    if [ -f "$EASYRSA_PKI/private/server.key" ]; then
+      cp $EASYRSA_PKI/private/server.key $OPENVPN/server.key;
+    else
+      echo "Generate server key FAIL";
+      exit 1;
+    fi;
+fi
+
+if ! [ -f "$OPENVPN/server.crt" ]; then
+    echo "$OPENVPN/server.crt not exists, generate"
+    if ! [ -f "$EASYRSA_PKI/issued/server.crt" ]; then
+      easyrsa --batch sign-req server server
+    fi;
+    if [ -f "$EASYRSA_PKI/issued/server.crt" ]; then
+      cp $EASYRSA_PKI/issued/server.crt $OPENVPN/server.crt;
+    else
+      echo "Generate server crt FAIL";
+      exit 1;
+    fi;
+fi
+
+if ! [ -f "$EASYRSA_PKI/dh.pem" ]; then
+  easyrsa gen-dh
+  cp $EASYRSA_PKI/dh.pem $OPENVPN/dh.pem;
+fi
+if ! [ -f "$OPENVPN/ta.key" ]; then
+  openvpn --genkey --secret ta.key
+fi
+if ! [ -f "$EASYRSA_PKI/crl.pem" ]; then
+  easyrsa gen-crl
+fi
+if ! [ -f "$OPENVPN/server.conf" ]; then
+  cp /opt/server.conf $OPENVPN/server.conf
+fi
 
 # Build runtime arguments array based on environment
 USER_ARGS=("${@}")
@@ -53,6 +105,10 @@ function setupIptablesAndRouting {
 addArg "--config" "$OPENVPN/server.conf"
 addArg "--cd" "$OPENVPN"
 
+#if [ -f "$EASYRSA_PKI/crl.pem" ]; then
+#   addArg "--crl-verify" "$EASYRSA_PKI/crl.pem"
+#fi
+
 if [ -f "$OPENVPN/ovpn_env.sh" ]; then
     echo "ENV file found!"
     source "$OPENVPN/ovpn_env.sh"
@@ -68,9 +124,9 @@ if [ ! -c /dev/net/tun ]; then
     mknod /dev/net/tun c 10 200
 fi
 
-#if [ -d "$OPENVPN/ccd" ]; then
-#    addArg "--client-config-dir" "$OPENVPN/ccd"
-#fi
+if [ -d "$OPENVPN/ccd" ]; then
+    addArg "--client-config-dir" "$OPENVPN/ccd"
+fi
 
 # When using --net=host, use this to specify nat device.
 #[ -z "$OVPN_NATDEVICE" ] && OVPN_NATDEVICE=eth0
@@ -105,3 +161,4 @@ fi
 
 echo "Running 'openvpn ${ARGS[@]} ${USER_ARGS[@]}'"
 exec openvpn ${ARGS[@]} ${USER_ARGS[@]}
+echo "Openvpn EXIT"

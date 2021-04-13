@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# Init the OpenVPN server normally
+#
+cd $OPENVPN
+if [ "$DEBUG" == "1" ]; then
+  set -x
+fi
+set -e
+
+if ! [ -f "$EASYRSA_VARS_FILE" ]; then
+    echo "$EASYRSA_VARS_FILE not exists."
+    ls -la $EASYRSA
+    cp $EASYRSA/vars.example $EASYRSA_VARS_FILE
+fi
+
+
+
