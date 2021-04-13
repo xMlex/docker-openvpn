@@ -5,7 +5,6 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/kylemanna/openvpn.svg)](https://hub.docker.com/r/kylemanna/openvpn/)
 [![ImageLayers](https://images.microbadger.com/badges/image/kylemanna/openvpn.svg)](https://microbadger.com/#/images/kylemanna/openvpn)
 
-
 OpenVPN server in a Docker container complete with an EasyRSA PKI CA.
 
 Extensively tested on [Digital Ocean $5/mo node](http://bit.ly/1C7cKr3) and has
