@@ -58,6 +58,11 @@ if [ -f "$OPENVPN/ovpn_env.sh" ]; then
     source "$OPENVPN/ovpn_env.sh"
 fi
 
+if [ -f "$OPENVPN/ovpn_init.sh" ]; then
+    echo "INIT file found!"
+    bash "$OPENVPN/ovpn_init.sh"
+fi
+
 mkdir -p /dev/net
 if [ ! -c /dev/net/tun ]; then
     mknod /dev/net/tun c 10 200
